@@ -1,20 +1,12 @@
-// Your code here.
 document.addEventListener('DOMContentLoaded', () => {
     const itemsContainer = document.querySelector('.items');
     const items = document.querySelectorAll('.item');
     
     let selectedItem = null;
-    let offsetX = 0;
-    let offsetY = 0;
     let initialX = 0;
-    let initialY = 0;
+    let initialScrollLeft = 0;
 
-    // Get container boundaries
-    const containerRect = itemsContainer.getBoundingClientRect();
-    const itemWidth = 200;  // Fixed width from CSS
-    const itemHeight = itemsContainer.offsetHeight - 40; // Height from CSS calc
-
-    // Add event listeners to each item
+   
     items.forEach(item => {
         item.addEventListener('mousedown', startDragging);
     });
@@ -26,18 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedItem = e.target;
         itemsContainer.classList.add('active');
         
-        // Convert to absolute positioning
+        
         const rect = selectedItem.getBoundingClientRect();
         selectedItem.style.position = 'absolute';
-        selectedItem.style.left = `${rect.left - containerRect.left}px`;
-        selectedItem.style.top = `${rect.top - containerRect.top}px`;
+        selectedItem.style.left = `${rect.left - itemsContainer.getBoundingClientRect().left + itemsContainer.scrollLeft}px`;
+        selectedItem.style.top = `${rect.top - itemsContainer.getBoundingClientRect().top}px`;
 
-        // Calculate offset
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        initialX = rect.left - containerRect.left;
-        initialY = rect.top - containerRect.top;
+        initialX = e.clientX;
+        initialScrollLeft = itemsContainer.scrollLeft;
         
         selectedItem.style.zIndex = 1000;
     }
@@ -47,17 +35,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         e.preventDefault();
 
-        // Calculate new position
-        let newX = e.clientX - offsetX - containerRect.left;
-        let newY = e.clientY - offsetY - containerRect.top;
+ 
+        const deltaX = e.clientX - initialX;
+        
+        
+        const newScrollLeft = initialScrollLeft - deltaX;
+        itemsContainer.scrollLeft = Math.max(0, newScrollLeft);
 
-        // Apply boundary constraints
-        newX = Math.max(0, Math.min(newX, containerRect.width - itemWidth));
-        newY = Math.max(0, Math.min(newY, containerRect.height - itemHeight));
-
-        // Update position
+        
+        const containerRect = itemsContainer.getBoundingClientRect();
+        const itemWidth = selectedItem.offsetWidth;
+        let newX = e.clientX - containerRect.left - (itemWidth / 2) + itemsContainer.scrollLeft;
+        
+        
+        newX = Math.max(0, Math.min(newX, itemsContainer.scrollWidth - itemWidth));
+        
         selectedItem.style.left = `${newX}px`;
-        selectedItem.style.top = `${newY}px`;
     }
 
     function stopDragging() {
@@ -68,12 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handle window resize to update container boundaries
+    
     window.addEventListener('resize', () => {
-        const newRect = itemsContainer.getBoundingClientRect();
-        containerRect.left = newRect.left;
-        containerRect.top = newRect.top;
-        containerRect.width = newRect.width;
-        containerRect.height = newRect.height;
+        if (selectedItem) {
+            const rect = itemsContainer.getBoundingClientRect();
+            selectedItem.style.left = `${Math.min(
+                parseFloat(selectedItem.style.left),
+                itemsContainer.scrollWidth - selectedItem.offsetWidth
+            )}px`;
+        }
     });
 });
